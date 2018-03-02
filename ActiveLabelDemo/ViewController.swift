@@ -19,10 +19,12 @@ class ViewController: UIViewController {
         let customType = ActiveType.custom(pattern: "\\sare\\b") //Looks for "are"
         let customType2 = ActiveType.custom(pattern: "\\sit\\b") //Looks for "it"
         let customType3 = ActiveType.custom(pattern: "\\ssupports\\b") //Looks for "supports"
+        let customType4 = ActiveType.substitution(pattern: "\\spost\\b", value: "asdf")
 
         label.enabledTypes.append(customType)
         label.enabledTypes.append(customType2)
         label.enabledTypes.append(customType3)
+        label.enabledTypes.append(customType4)
 
         label.urlMaximumLength = 31
 
@@ -49,6 +51,8 @@ class ViewController: UIViewController {
             label.customSelectedColor[customType] = UIColor.green
             label.customColor[customType2] = UIColor.magenta
             label.customSelectedColor[customType2] = UIColor.green
+            label.customColor[customType4] = UIColor.brown
+            label.customSelectedColor[customType4] = UIColor.green
             
             label.configureLinkAttribute = { (type, attributes, isSelected) in
                 var atts = attributes
@@ -64,6 +68,7 @@ class ViewController: UIViewController {
             label.handleCustomTap(for: customType) { self.alert("Custom type", message: $0) }
             label.handleCustomTap(for: customType2) { self.alert("Custom type", message: $0) }
             label.handleCustomTap(for: customType3) { self.alert("Custom type", message: $0) }
+            label.handleCustomTap(for: customType4) { self.alert("Custom type", message: $0) }
         }
 
         label.frame = CGRect(x: 20, y: 40, width: view.frame.width - 40, height: 300)

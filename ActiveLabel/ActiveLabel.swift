@@ -95,7 +95,7 @@ typealias ElementTuple = (range: NSRange, element: ActiveElement, type: ActiveTy
             mentionTapHandler = nil
         case .url:
             urlTapHandler = nil
-        case .custom:
+        case .custom, .substitution:
             customTapHandlers[type] = nil
         }
     }
@@ -212,7 +212,8 @@ typealias ElementTuple = (range: NSRange, element: ActiveElement, type: ActiveTy
             case .mention(let userHandle): didTapMention(userHandle)
             case .hashtag(let hashtag): didTapHashtag(hashtag)
             case .url(let originalURL, _): didTapStringURL(originalURL)
-            case .custom(let element): didTap(element, for: selectedElement.type)
+            case .custom(let element),
+                 .substitution(let element, _): didTap(element, for: selectedElement.type)
             }
             
             let when = DispatchTime.now() + Double(Int64(0.25 * Double(NSEC_PER_SEC))) / Double(NSEC_PER_SEC)
@@ -318,7 +319,7 @@ typealias ElementTuple = (range: NSRange, element: ActiveElement, type: ActiveTy
             case .mention: attributes[NSAttributedStringKey.foregroundColor] = mentionColor
             case .hashtag: attributes[NSAttributedStringKey.foregroundColor] = hashtagColor
             case .url: attributes[NSAttributedStringKey.foregroundColor] = URLColor
-            case .custom: attributes[NSAttributedStringKey.foregroundColor] = customColor[type] ?? defaultCustomColor
+            case .custom, .substitution: attributes[NSAttributedStringKey.foregroundColor] = customColor[type] ?? defaultCustomColor
             }
             
             if let highlightFont = hightlightFont {
@@ -350,6 +351,16 @@ typealias ElementTuple = (range: NSRange, element: ActiveElement, type: ActiveTy
             textRange = NSRange(location: 0, length: textLength)
             activeElements[.url] = urlElements
         }
+        
+        for case let ActiveType.substitution(pattern, value) in enabledTypes {
+            let tuple = ActiveBuilder.createSubstitutionElements(from: textString, range: textRange, pattern: pattern, value: value, filterPredicate: nil)
+            let substitutionElements = tuple.0
+            let finalText = tuple.1
+            textString = finalText
+            textLength = textString.utf16.count
+            textRange = NSRange(location: 0, length: textLength)
+            activeElements[.substitution(pattern: pattern, value: value)] = substitutionElements
+        }
 
         for type in enabledTypes where type != .url {
             var filter: ((String) -> Bool)? = nil
@@ -357,6 +368,8 @@ typealias ElementTuple = (range: NSRange, element: ActiveElement, type: ActiveTy
                 filter = mentionFilterPredicate
             } else if type == .hashtag {
                 filter = hashtagFilterPredicate
+            } else if case ActiveType.substitution(_, _) = type {
+                continue
             }
             let hashtagElements = ActiveBuilder.createElements(type: type, from: textString, range: textRange, filterPredicate: filter)
             activeElements[type] = hashtagElements
@@ -398,7 +411,7 @@ typealias ElementTuple = (range: NSRange, element: ActiveElement, type: ActiveTy
             case .mention: selectedColor = mentionSelectedColor ?? mentionColor
             case .hashtag: selectedColor = hashtagSelectedColor ?? hashtagColor
             case .url: selectedColor = URLSelectedColor ?? URLColor
-            case .custom:
+            case .custom, .substitution:
                 let possibleSelectedColor = customSelectedColor[selectedElement.type] ?? customColor[selectedElement.type]
                 selectedColor = possibleSelectedColor ?? defaultCustomColor
             }
@@ -409,7 +422,7 @@ typealias ElementTuple = (range: NSRange, element: ActiveElement, type: ActiveTy
             case .mention: unselectedColor = mentionColor
             case .hashtag: unselectedColor = hashtagColor
             case .url: unselectedColor = URLColor
-            case .custom: unselectedColor = customColor[selectedElement.type] ?? defaultCustomColor
+            case .custom, .substitution: unselectedColor = customColor[selectedElement.type] ?? defaultCustomColor
             }
             attributes[NSAttributedStringKey.foregroundColor] = unselectedColor
         }

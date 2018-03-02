@@ -20,6 +20,8 @@ struct ActiveBuilder {
             return createElements(from: text, for: type, range: range, filterPredicate: filterPredicate)
         case .custom:
             return createElements(from: text, for: type, range: range, minLength: 1, filterPredicate: filterPredicate)
+        case .substitution(let pattern, let value):
+            return createSubstitutionElements(from: text, range: range, pattern: pattern, value: value, filterPredicate: filterPredicate).0
         }
     }
 
@@ -48,6 +50,31 @@ struct ActiveBuilder {
             let element = ActiveElement.url(original: word, trimmed: trimmedWord)
             elements.append((newRange, element, type))
         }
+        return (elements, text)
+    }
+    
+    static func createSubstitutionElements(from text: String,
+                                           range: NSRange,
+                                           pattern: String,
+                                           value: String,
+                                           filterPredicate: ActiveFilterPredicate?) -> ([ElementTuple], String) {
+        var text = text
+        let matches = RegexParser.getElements(from: text, with: pattern, range: range)
+        let nsstring = text as NSString
+        var elements: [ElementTuple] = []
+        
+        for match in matches where match.range.length > 2 {
+            let word = nsstring.substring(with: match.range)
+                .trimmingCharacters(in: CharacterSet.whitespacesAndNewlines)
+            if filterPredicate?(word) ?? true {
+                text = text.replacingOccurrences(of: word, with: value)
+                let newRange = (text as NSString).range(of: value)
+                let type = ActiveType.substitution(pattern: pattern, value: value)
+                let element = ActiveElement.create(with: type, text: value)
+                elements.append((newRange, element, type))
+            }
+        }
+        
         return (elements, text)
     }
 
